@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Dark Mode Timetable</title>
+    <style>
+        :root {
+            /* Dark Mode Color Palette */
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --header-bg: #2d2d2d;
+            --primary: #ffffff;
+            --border: #333333;
+            --grid-line: #2a2a2a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .controls {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            border: 1px solid var(--border);
+        }
+        input, select, button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            background-color: var(--header-bg);
+            color: var(--primary);
+            transition: background-color 0.2s ease;
+        }
+        input::placeholder { color: #aaa; }
+        input[type="color"] {
+            width: 50px;
+            padding: 5px;
+            cursor: pointer;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2980b9; }
+        .btn-danger { background-color: #e74c3c; }
+        .btn-danger:hover { background-color: #c0392b; }
+        
+        .calendar-container {
+            display: flex;
+            background: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1200px;
+            border: 1px solid var(--border);
+        }
+        .time-labels {
+            width: 80px;
+            background: var(--header-bg);
+            border-right: 1px solid var(--border);
+            position: relative;
+        }
+        .time-label {
+            position: absolute;
+            right: 10px;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #aaa;
+        }
+        .day-column {
+            flex: 1;
+            border-right: 1px solid var(--border);
+            position: relative;
+            min-width: 150px;
+        }
+        .day-column:last-child { border-right: none; }
+        .day-header {
+            text-align: center;
+            padding: 15px 0;
+            background: var(--header-bg);
+            font-weight: bold;
+            border-bottom: 1px solid var(--border);
+            height: 50px;
+            box-sizing: border-box;
+        }
+        .day-body {
+            position: relative;
+            height: calc(600px * 1.5); /* 10 hours * 60 mins * 1.5px */
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent calc(60px * 1.5 - 1px),
+                var(--grid-line) calc(60px * 1.5 - 1px),
+                var(--grid-line) calc(60px * 1.5)
+            );
+        }
+        .course-block {
+            position: absolute;
+            background-color: #3498db;
+            color: white; /* Always white text... */
+            text-shadow: 0px 1px 4px rgba(0,0,0,0.8); /* ...but with a heavy shadow so it shows on yellow/white blocks */
+            border-radius: 4px;
+            padding: 5px;
+            font-size: 13px;
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.2s;
+        }
+        .course-block:hover { z-index: 10; filter: brightness(1.2); }
+        .delete-btn {
+            font-size: 10px;
+            margin-top: 5px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            cursor: pointer;
+            border-radius: 3px;
+            padding: 2px 8px;
+        }
+        .delete-btn:hover { background: rgba(0,0,0,0.8); }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <input type="text" id="courseCode" placeholder="Course Code" required>
+        <select id="courseSlot">
+            <option value="1">Slot 1</option>
+            <option value="2">Slot 2</option>
+            <option value="3">Slot 3</option>
+            <option value="4">Slot 4</option>
+            <option value="5">Slot 5</option>
+            <option value="6">Slot 6</option>
+            <option value="7">Slot 7</option>
+            <option value="8">Slot 8</option>
+            <option value="9">Slot 9</option>
+            <option value="10">Slot 10</option>
+            <option value="11">Slot 11</option>
+            <option value="12">Slot 12</option>
+            <option value="L1">Lab L1</option>
+            <option value="L2">Lab L2</option>
+            <option value="L3">Lab L3</option>
+            <option value="L4">Lab L4</option>
+            <option value="L5">Lab L5</option>
+            <option value="L6">Lab L6</option>
+            <option value="XE">Slot XE</option>
+            <option value="X1">Slot X1</option>
+            <option value="X2">Slot X2</option>
+            <option value="X3">Slot X3</option>
+            <option value="XA">Slot XA</option>
+            <option value="XB">Slot XB</option>
+        </select>
+        <input type="color" id="courseColor" value="#f1c40f" title="Choose Course Color">
+        <button onclick="addCourse()">Add Course</button>
+        <button onclick="clearAll()" class="btn-danger">Clear All</button>
+    </div>
+
+    <div class="calendar-container">
+        <div class="time-labels" id="timeLabels">
+            <div class="day-header">Time</div>
+        </div>
+        <div class="day-column"><div class="day-header">Monday</div><div class="day-body" id="col-Mon"></div></div>
+        <div class="day-column"><div class="day-header">Tuesday</div><div class="day-body" id="col-Tue"></div></div>
+        <div class="day-column"><div class="day-header">Wednesday</div><div class="day-body" id="col-Wed"></div></div>
+        <div class="day-column"><div class="day-header">Thursday</div><div class="day-body" id="col-Thu"></div></div>
+        <div class="day-column"><div class="day-header">Friday</div><div class="day-body" id="col-Fri"></div></div>
+    </div>
+
+    <script>
+        const slotMapping = {
+            "1": [{d:"Mon", s:570, e:625}, {d:"Tue", s:570, e:625}, {d:"Thu", s:570, e:625}],
+            "2": [{d:"Mon", s:635, e:690}, {d:"Tue", s:635, e:690}, {d:"Thu", s:635, e:690}],
+            "3": [{d:"Mon", s:695, e:750}, {d:"Tue", s:695, e:750}, {d:"Thu", s:695, e:750}],
+            "4": [{d:"Tue", s:480, e:565}, {d:"Thu", s:480, e:565}],
+            "5": [{d:"Wed", s:480, e:565}, {d:"Fri", s:480, e:565}],
+            "6": [{d:"Wed", s:570, e:655}, {d:"Fri", s:570, e:655}],
+            "7": [{d:"Wed", s:665, e:750}, {d:"Fri", s:665, e:750}],
+            "8": [{d:"Mon", s:840, e:925}, {d:"Thu", s:840, e:925}],
+            "9": [{d:"Mon", s:930, e:1015}, {d:"Thu", s:930, e:1015}],
+            "10": [{d:"Tue", s:840, e:925}, {d:"Fri", s:840, e:925}],
+            "11": [{d:"Tue", s:930, e:1015}, {d:"Fri", s:930, e:1015}],
+            "12": [{d:"Mon", s:1025, e:1080}, {d:"Tue", s:1025, e:1080}, {d:"Thu", s:1025, e:1080}],
+            "L1": [{d:"Mon", s:840, e:1015}],
+            "L2": [{d:"Tue", s:840, e:1015}],
+            "L3": [{d:"Thu", s:840, e:1015}],
+            "L4": [{d:"Fri", s:840, e:1015}],
+            "L5": [{d:"Wed", s:570, e:750}],
+            "L6": [{d:"Fri", s:570, e:750}],
+            "XE": [{d:"Mon", s:480, e:565}],
+            "X1": [{d:"Wed", s:840, e:895}],
+            "X2": [{d:"Wed", s:900, e:955}],
+            "X3": [{d:"Wed", s:960, e:1015}],
+            "XA": [{d:"Wed", s:1025, e:1080}],
+            "XB": [{d:"Fri", s:1025, e:1080}]
+        };
+
+        const START_TIME = 480; 
+        let courses = JSON.parse(localStorage.getItem('myTimetable')) || [];
+
+        const colorInput = document.getElementById('courseColor');
+        const codeInput = document.getElementById('courseCode');
+        const slotInput = document.getElementById('courseSlot');
+
+        function syncColors() {
+            const hexColor = colorInput.value;
+            // Tinting the input boxes with 33 opacity on dark mode looks nice
+            const transparentTint = hexColor + '33';
+            codeInput.style.backgroundColor = transparentTint;
+            slotInput.style.backgroundColor = transparentTint;
+        }
+        colorInput.addEventListener('input', syncColors);
+
+        function renderTimeLabels() {
+            const container = document.getElementById('timeLabels');
+            for(let i = 8; i <= 18; i++) {
+                const min = i * 60;
+                const top = (min - START_TIME) * 1.5;
+                const label = document.createElement('div');
+                label.className = 'time-label';
+                label.style.top = (top + 50) + 'px'; 
+                label.innerText = i > 12 ? (i-12) + ':00' : i + ':00';
+                container.appendChild(label);
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('myTimetable', JSON.stringify(courses));
+            document.querySelectorAll('.day-body').forEach(el => el.innerHTML = '');
+            
+            const dayGroups = { Mon:[], Tue:[], Wed:[], Thu:[], Fri:[] };
+            
+            courses.forEach((c, idx) => {
+                const timings = slotMapping[c.slot];
+                if(timings) {
+                    timings.forEach(time => {
+                        dayGroups[time.d].push({ ...time, name: c.code, color: c.color, id: idx, slot: c.slot });
+                    });
+                }
+            });
+
+            for(const day in dayGroups) {
+                const col = document.getElementById(`col-${day}`);
+                const blocks = dayGroups[day].sort((a,b) => a.s - b.s); 
+                
+                blocks.forEach((block, i) => {
+                    const overlapping = blocks.filter(b => (b.s < block.e && b.e > block.s));
+                    const width = 100 / overlapping.length;
+                    const indexInOverlap = overlapping.findIndex(b => b.id === block.id);
+                    const left = indexInOverlap * width;
+
+                    const div = document.createElement('div');
+                    div.className = 'course-block';
+                    div.style.top = ((block.s - START_TIME) * 1.5) + 'px';
+                    div.style.height = ((block.e - block.s) * 1.5) + 'px';
+                    div.style.width = width + '%';
+                    div.style.left = left + '%';
+                    div.style.backgroundColor = block.color;
+
+                    div.innerHTML = `
+                        <strong>${block.name}</strong>
+                        <span>(${block.slot})</span>
+                        <button class="delete-btn" onclick="removeCourse(${block.id})">Drop</button>
+                    `;
+                    col.appendChild(div);
+                });
+            }
+        }
+
+        function addCourse() {
+            const code = document.getElementById('courseCode').value.trim();
+            const slot = document.getElementById('courseSlot').value;
+            const color = document.getElementById('courseColor').value;
+            
+            if(!code) return alert('Please enter a course code.');
+            
+            courses.push({ code, slot, color });
+            document.getElementById('courseCode').value = ''; 
+            saveAndRender();
+        }
+
+        function removeCourse(index) {
+            courses.splice(index, 1);
+            saveAndRender();
+        }
+
+        function clearAll() {
+            if(confirm('Are you sure you want to clear your entire timetable?')) {
+                courses = [];
+                saveAndRender();
+            }
+        }
+
+        syncColors(); 
+        renderTimeLabels();
+        saveAndRender();
+    </script>
+</body>
+</html>
