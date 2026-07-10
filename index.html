@@ -115,10 +115,10 @@
         .course-block {
             position: absolute;
             background-color: #3498db;
-            color: white; /* Always white text... */
-            text-shadow: 0px 1px 4px rgba(0,0,0,0.8); /* ...but with a heavy shadow so it shows on yellow/white blocks */
+            color: white; 
+            text-shadow: 0px 1px 4px rgba(0,0,0,0.8); 
             border-radius: 4px;
-            padding: 5px;
+            padding: 15px 5px 5px 5px; /* Added top padding so text doesn't overlap the X */
             font-size: 13px;
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
@@ -132,17 +132,36 @@
             transition: all 0.2s;
         }
         .course-block:hover { z-index: 10; filter: brightness(1.2); }
+        
+        /* NEW: Truncate long text properly */
+        .course-name {
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        /* NEW: Space-saving delete button in top right */
         .delete-btn {
-            font-size: 10px;
-            margin-top: 5px;
-            background: rgba(0,0,0,0.5);
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.4);
             border: 1px solid rgba(255,255,255,0.3);
             color: white;
             cursor: pointer;
-            border-radius: 3px;
-            padding: 2px 8px;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: bold;
+            line-height: 1;
+            z-index: 2;
         }
-        .delete-btn:hover { background: rgba(0,0,0,0.8); }
+        .delete-btn:hover { 
+            background: rgba(231, 76, 60, 0.9); /* Turns red on hover */
+            border-color: white; 
+        }
     </style>
 </head>
 <body>
@@ -228,7 +247,6 @@
 
         function syncColors() {
             const hexColor = colorInput.value;
-            // Tinting the input boxes with 33 opacity on dark mode looks nice
             const transparentTint = hexColor + '33';
             codeInput.style.backgroundColor = transparentTint;
             slotInput.style.backgroundColor = transparentTint;
@@ -281,10 +299,11 @@
                     div.style.left = left + '%';
                     div.style.backgroundColor = block.color;
 
+                    // Updated HTML structure for the block
                     div.innerHTML = `
-                        <strong>${block.name}</strong>
+                        <button class="delete-btn" onclick="removeCourse(${block.id})" title="Drop Course">✕</button>
+                        <strong class="course-name" title="${block.name}">${block.name}</strong>
                         <span>(${block.slot})</span>
-                        <button class="delete-btn" onclick="removeCourse(${block.id})">Drop</button>
                     `;
                     col.appendChild(div);
                 });
