@@ -69,13 +69,13 @@
             border: none;
             cursor: pointer;
             font-weight: bold;
-            flex-grow: 1; /* Helps buttons look uniform */
+            flex-grow: 1; 
         }
         button:hover { background-color: #2980b9; }
         .btn-danger { background-color: #e74c3c; }
         .btn-danger:hover { background-color: #c0392b; }
         
-        /* --- Calendar Container (Mobile Friendly) --- */
+        /* --- Calendar Container --- */
         .calendar-container {
             display: flex;
             background: var(--panel-bg);
@@ -84,19 +84,19 @@
             width: 100%;
             max-width: 1200px;
             border: 1px solid var(--border);
-            overflow-x: auto; /* Enable horizontal scrolling */
-            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
             position: relative;
         }
 
         .time-labels {
-            min-width: 60px; /* slightly smaller for mobile */
+            min-width: 60px; 
             background: var(--header-bg);
             border-right: 1px solid var(--border);
-            position: sticky; /* Keeps it visible while scrolling horizontally */
+            position: sticky; 
             left: 0;
             z-index: 20; 
-            box-shadow: 2px 0 5px rgba(0,0,0,0.3); /* Visual separator */
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3); 
         }
 
         .time-label {
@@ -112,7 +112,7 @@
             flex: 1;
             border-right: 1px solid var(--border);
             position: relative;
-            min-width: 140px; /* Forces scrolling on small screens instead of shrinking */
+            min-width: 140px; 
         }
         .day-column:last-child { border-right: none; }
         
@@ -141,14 +141,14 @@
             );
         }
 
-        /* --- Course Blocks --- */
+        /* --- Course Blocks & New Selection State --- */
         .course-block {
             position: absolute;
             background-color: #3498db;
             color: white; 
             text-shadow: 0px 1px 4px rgba(0,0,0,0.8); 
             border-radius: 4px;
-            padding: 15px 4px 4px 4px; 
+            padding: 20px 4px 4px 4px; /* Increased top padding for checkbox */
             font-size: 12px;
             box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5);
@@ -158,11 +158,24 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            border: 1px solid rgba(255,255,255,0.2);
-            transition: filter 0.2s;
+            transition: all 0.2s;
             cursor: pointer;
         }
-        .course-block:active { filter: brightness(1.3); } /* Better touch feedback */
+        
+        /* Tentative State (Default) */
+        .course-block.tentative {
+            opacity: 0.75;
+            border: 2px dashed rgba(255,255,255,0.6);
+        }
+        
+        /* Confirmed State */
+        .course-block.confirmed {
+            opacity: 1;
+            border: 2px solid rgba(255,255,255,0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+
+        .course-block:active { filter: brightness(1.3); } 
         
         .course-name {
             width: 100%;
@@ -172,6 +185,20 @@
             display: block;
         }
 
+        /* Top Left Checkbox */
+        .confirm-checkbox {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            z-index: 2;
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            margin: 0;
+            accent-color: #2ecc71; /* Green checkmark when selected */
+        }
+
+        /* Top Right Delete Button */
         .delete-btn {
             position: absolute;
             top: 4px;
@@ -181,7 +208,7 @@
             color: white;
             cursor: pointer;
             border-radius: 4px;
-            padding: 4px 8px; /* Larger hit area for touch screens */
+            padding: 4px 8px; 
             font-size: 10px;
             font-weight: bold;
             line-height: 1;
@@ -218,7 +245,7 @@
             font-size: 24px;
             background: none; 
             border: none;
-            padding: 10px; /* larger hit area */
+            padding: 10px; 
         }
         .modal-course-name { 
             font-size: 24px; 
@@ -228,25 +255,23 @@
             text-shadow: 0px 2px 5px rgba(0,0,0,0.5);
         }
         .modal-course-slot { color: #aaa; font-size: 16px; margin-top: 5px; }
+        
+        .status-badge {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status-tentative { background: #f39c12; color: #fff; }
+        .status-confirmed { background: #2ecc71; color: #fff; }
 
-        /* --- MOBILE MEDIA QUERIES --- */
         @media (max-width: 600px) {
             body { padding: 10px; }
-            
-            .controls {
-                flex-direction: column; /* Stack controls vertically */
-                align-items: stretch;
-                padding: 15px;
-            }
-            
+            .controls { flex-direction: column; align-items: stretch; padding: 15px; }
             #courseCode, #courseSlot { width: 100%; }
-            
-            .control-row {
-                display: flex;
-                gap: 10px;
-                width: 100%;
-            }
-            
+            .control-row { display: flex; gap: 10px; width: 100%; }
             input[type="color"] { flex-grow: 1; }
         }
     </style>
@@ -304,6 +329,7 @@
             <button class="modal-close" onclick="closeModal(event)">✕</button>
             <div class="modal-course-name" id="modalCourseName">Course Code</div>
             <div class="modal-course-slot" id="modalCourseSlot">Slot: </div>
+            <div id="modalCourseStatus" class="status-badge"></div>
         </div>
     </div>
 
@@ -336,7 +362,9 @@
         };
 
         const START_TIME = 480; 
+        // Ensure older saved data maps smoothly to the new confirmed state
         let courses = JSON.parse(localStorage.getItem('myTimetable')) || [];
+        courses = courses.map(c => ({...c, isConfirmed: c.isConfirmed || false}));
 
         const colorInput = document.getElementById('courseColor');
         const codeInput = document.getElementById('courseCode');
@@ -350,10 +378,20 @@
         }
         colorInput.addEventListener('input', syncColors);
 
-        function openModal(name, slot, color) {
+        function openModal(name, slot, color, isConfirmed) {
             document.getElementById('modalCourseName').innerText = name;
             document.getElementById('modalCourseName').style.color = color;
             document.getElementById('modalCourseSlot').innerText = "Assigned to Slot: " + slot;
+            
+            const statusDiv = document.getElementById('modalCourseStatus');
+            if (isConfirmed) {
+                statusDiv.innerText = "✓ Final Selection";
+                statusDiv.className = "status-badge status-confirmed";
+            } else {
+                statusDiv.innerText = "? Tentative";
+                statusDiv.className = "status-badge status-tentative";
+            }
+
             document.getElementById('courseModal').style.display = 'flex';
         }
 
@@ -389,7 +427,9 @@
                 const timings = slotMapping[c.slot];
                 if(timings) {
                     timings.forEach(time => {
-                        dayGroups[time.d].push({ ...time, name: c.code, color: c.color, id: idx, slot: c.slot });
+                        dayGroups[time.d].push({ 
+                            ...time, name: c.code, color: c.color, id: idx, slot: c.slot, isConfirmed: c.isConfirmed 
+                        });
                     });
                 }
             });
@@ -405,16 +445,18 @@
                     const left = indexInOverlap * width;
 
                     const div = document.createElement('div');
-                    div.className = 'course-block';
+                    // Dynamic class assignment based on confirmed state
+                    div.className = `course-block ${block.isConfirmed ? 'confirmed' : 'tentative'}`;
                     div.style.top = ((block.s - START_TIME) * 1.5) + 'px';
                     div.style.height = ((block.e - block.s) * 1.5) + 'px';
                     div.style.width = width + '%';
                     div.style.left = left + '%';
                     div.style.backgroundColor = block.color;
 
-                    div.onclick = () => openModal(block.name, block.slot, block.color);
+                    div.onclick = () => openModal(block.name, block.slot, block.color, block.isConfirmed);
 
                     div.innerHTML = `
+                        <input type="checkbox" class="confirm-checkbox" ${block.isConfirmed ? 'checked' : ''} onclick="toggleConfirm(${block.id}, event)" title="Mark as Final">
                         <button class="delete-btn" onclick="removeCourse(${block.id}, event)">✕</button>
                         <strong class="course-name">${block.name}</strong>
                         <span>(${block.slot})</span>
@@ -431,7 +473,8 @@
             
             if(!code) return alert('Please enter a course code.');
             
-            courses.push({ code, slot, color });
+            // New courses are tentative by default
+            courses.push({ code, slot, color, isConfirmed: false });
             document.getElementById('courseCode').value = ''; 
             saveAndRender();
         }
@@ -439,6 +482,13 @@
         function removeCourse(index, event) {
             event.stopPropagation(); 
             courses.splice(index, 1);
+            saveAndRender();
+        }
+
+        // NEW: Toggle function for the confirmed state
+        function toggleConfirm(index, event) {
+            event.stopPropagation(); // Prevents the modal from opening when clicking the checkbox
+            courses[index].isConfirmed = !courses[index].isConfirmed;
             saveAndRender();
         }
 
